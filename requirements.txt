@@ -1,0 +1,2 @@
+akshare>=1.18.40
+tushare>=1.4.24
