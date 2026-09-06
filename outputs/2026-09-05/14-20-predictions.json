@@ -1,0 +1,98 @@
+{
+  "schema_version": "1.0",
+  "trade_date": "2026-09-05",
+  "generated_at_cst": "2026-09-05T15:52:43+08:00",
+  "run_type": "14-20_initial_scan",
+  "status": "non_trading_day_data_quality_failure",
+  "ranking_permitted": false,
+  "trading_day_check": {
+    "is_sse_trading_day": false,
+    "is_szse_trading_day": false,
+    "reason": "2026-09-05 is Saturday; SSE and SZSE do not conduct regular trading on Saturdays.",
+    "verified_at_cst": "2026-09-05T15:52:43+08:00",
+    "sources": [
+      {
+        "exchange": "SSE",
+        "publisher": "Shanghai Stock Exchange",
+        "url": "https://www.sse.com.cn/disclosure/announcement/general/c/c_20251222_10802507.shtml"
+      },
+      {
+        "exchange": "SZSE",
+        "publisher": "Shenzhen Stock Exchange",
+        "url": "https://www.szse.cn/disclosure/notice/general/index_4.html"
+      }
+    ]
+  },
+  "data_sources": [
+    {
+      "name": "Eastmoney candidate snapshots",
+      "manifest_path": "raw/afternoon/manifest.json",
+      "expected_snapshot_count": 11,
+      "completed_snapshot_count": 11,
+      "successful_snapshot_count": 0,
+      "provider_native_timestamp_available": false,
+      "freshness_verified": false
+    },
+    {
+      "name": "Eastmoney.getTopicZTPool",
+      "path": "raw/afternoon/limit-up-pool-14-20.json",
+      "retrieval_timestamp_cst": "2026-09-05T15:52:29+08:00",
+      "source_native_timestamp": null,
+      "source_native_timestamp_available": false,
+      "record_count": 39,
+      "freshness_verified": false,
+      "usable_for_scoring": false
+    }
+  ],
+  "data_timestamp": null,
+  "target_trade_date": null,
+  "probability_type": null,
+  "predictions": [],
+  "groups": {
+    "first_board": [],
+    "higher_board": [],
+    "strong_unsealed": [],
+    "high_probability_low_buyability": []
+  },
+  "model_outputs": {
+    "next_trading_day_limit_up_probability_pct": "unavailable",
+    "buyability_probability_pct": "unavailable",
+    "expected_next_day_return_pct": "unavailable",
+    "expected_return_status": "no_separately_calibrated_return_model"
+  },
+  "limit_up_pool_fields": {
+    "last_seal_time": "present_but_not_used",
+    "reopen_count": "present_but_not_used",
+    "queue_value": "present_but_not_used",
+    "reason": "The pool has no source-native timestamp, was retrieved after the requested window, and was captured on a non-trading day."
+  },
+  "snapshot_gaps": [
+    {"captured_at_cst": "2026-09-05T14:18:23+08:00", "status": "failure"},
+    {"captured_at_cst": "2026-09-05T14:18:50+08:00", "status": "failure"},
+    {"captured_at_cst": "2026-09-05T14:26:46+08:00", "status": "failure"},
+    {"captured_at_cst": "2026-09-05T14:44:01+08:00", "status": "failure"},
+    {"captured_at_cst": "2026-09-05T14:44:27+08:00", "status": "failure"},
+    {"captured_at_cst": "2026-09-05T15:01:25+08:00", "status": "failure"},
+    {"captured_at_cst": "2026-09-05T15:01:59+08:00", "status": "failure"},
+    {"captured_at_cst": "2026-09-05T15:17:45+08:00", "status": "failure"},
+    {"captured_at_cst": "2026-09-05T15:18:18+08:00", "status": "failure"},
+    {"captured_at_cst": "2026-09-05T15:34:50+08:00", "status": "failure"},
+    {"captured_at_cst": "2026-09-05T15:52:28+08:00", "status": "failure"}
+  ],
+  "failure_reasons": [
+    "sse_non_trading_day",
+    "szse_non_trading_day",
+    "zero_successful_candidate_snapshots",
+    "no_valid_14_15_to_14_20_candidate_snapshot",
+    "provider_native_timestamp_missing",
+    "snapshot_age_at_evaluation_cannot_be_verified_at_or_below_60_seconds",
+    "limit_up_pool_retrieved_outside_requested_window"
+  ],
+  "actions": {
+    "scorer_invoked": false,
+    "stocks_ranked": false,
+    "broker_connected": false,
+    "orders_executed": false
+  },
+  "disclaimer": "Research and model evaluation only; not personalized investment advice or a trading instruction."
+}

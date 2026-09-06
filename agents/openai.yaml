@@ -1,4 +1,4 @@
 interface:
   display_name: "A股连板概率分析"
-  short_description: "14:30预测新兴行业首板与连板，并按日归档"
-  default_prompt: "北京时间14:30扫描符合范围的A股；分别输出首板晋级、连板和可买入概率，并保存每日归档。"
+  short_description: "14:20初筛并于14:50更新T+1连板概率"
+  default_prompt: "北京时间14:20扫描符合范围的A股，14:50复核封板、炸板和封单衰减并更新T+1概率；不生成T+2预测。"

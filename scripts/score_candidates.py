@@ -11,7 +11,6 @@ MIN_FLOAT_MARKET_CAP = 5_000_000_000
 MAX_SNAPSHOT_AGE_SECONDS = 60
 MIN_FEATURE_COVERAGE = .60
 NORMAL_FEATURE_COVERAGE = .80
-T_PLUS_2_ANALYSIS_THRESHOLD = .60
 
 def clamp(value): return max(0.0, min(1.0, float(value)))
 
@@ -56,13 +55,10 @@ def score_one(row):
     board_count = max(1, int(row.get("board_count", 1)))
     at_limit_up = bool(row.get("at_limit_up", True))
     candidate_group = "first_board" if board_count == 1 and at_limit_up else "higher_board" if board_count >= 2 and at_limit_up else "strong_unsealed"
-    conditional_day_two = clamp(.68 + .12*clamp(row.get("theme_strength",0)) + .08*clamp(row.get("leader_score",0)) - .05*max(0,board_count-1) - .10*clamp(row.get("queue_decay",1)) - .04*int(row.get("reopen_count",0)))
-    two_day_probability = probability * conditional_day_two
-    analyze_t_plus_2 = probability > T_PLUS_2_ANALYSIS_THRESHOLD
     accessibility = clamp(.45 * (1-clamp(row.get("queue_ratio", 0))) + .20 * clamp(row.get("turnover_percentile", .5)) + .15 * clamp(row.get("float_market_cap_percentile", .5)) + .20 * min(1, int(row.get("reopen_count", 0))/3))
     late_break = clamp(.45*clamp(row.get("queue_decay", 1)) + .10*int(row.get("reopen_count", 0)) + .25*(1-clamp(row.get("theme_strength", 0))) + .20*(1-clamp(row.get("market_breadth", 0))))
     confidence = "normal" if covered >= NORMAL_FEATURE_COVERAGE else "low" if covered >= MIN_FEATURE_COVERAGE else "insufficient"
-    result = dict(row); result.update({"next_trading_day_limit_up_probability_pct": round(probability*100,1), "t_plus_2_analysis_eligible": analyze_t_plus_2, "t_plus_2_analysis_status": "analyzed" if analyze_t_plus_2 else "below_60_percent_t_plus_1_gate", "second_day_limit_up_given_first_probability_pct": round(conditional_day_two*100,1) if analyze_t_plus_2 else None, "two_day_continuation_probability_pct": round(two_day_probability*100,1) if analyze_t_plus_2 else None, "probability_type": "heuristic_uncalibrated", "buyability_probability_pct": round(accessibility*100,1), "late_break_risk_pct": round(late_break*100,1), "capitalization_quality": None if values["capitalization_quality"] is None else round(values["capitalization_quality"],3), "feature_coverage": round(covered,3), "confidence": confidence, "missing_features": missing, "label": "高概率但难买入" if probability >= .65 and accessibility < .25 else "候选"})
+    result = dict(row); result.update({"next_trading_day_limit_up_probability_pct": round(probability*100,1), "probability_type": "heuristic_uncalibrated", "expected_next_day_return_pct": None, "expected_next_day_return_range_pct": None, "expected_return_status": "requires_separately_calibrated_return_model", "buyability_probability_pct": round(accessibility*100,1), "late_break_risk_pct": round(late_break*100,1), "capitalization_quality": None if values["capitalization_quality"] is None else round(values["capitalization_quality"],3), "feature_coverage": round(covered,3), "confidence": confidence, "missing_features": missing, "label": "高概率但难买入" if probability >= .65 and accessibility < .25 else "候选"})
     result["candidate_group"] = candidate_group
     return result
 

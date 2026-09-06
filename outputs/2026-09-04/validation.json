@@ -1,0 +1,80 @@
+{
+  "schema_version": "1.0",
+  "trade_date": "2026-09-04",
+  "generated_at_cst": "2026-09-04T14:49:30+08:00",
+  "run_type": "afternoon",
+  "status": "failed",
+  "ranking_permitted": false,
+  "trading_day_check": {
+    "status": "passed",
+    "is_sse_trading_day": true,
+    "is_szse_trading_day": true,
+    "method": "2026-09-04 is Friday and is absent from each exchange's published 2026 closure schedule",
+    "verified_at_cst": "2026-09-04T14:49:30+08:00",
+    "sources": [
+      {
+        "exchange": "SSE",
+        "publisher": "Shanghai Stock Exchange",
+        "published_date": "2025-12-22",
+        "url": "https://www.sse.com.cn/disclosure/announcement/general/c/c_20251222_10802507.shtml"
+      },
+      {
+        "exchange": "SZSE",
+        "publisher": "Shenzhen Stock Exchange",
+        "published_date": "2025-12-22",
+        "url": "https://www.szse.cn/disclosure/notice/general/index_4.html"
+      }
+    ]
+  },
+  "archive_checks": {
+    "manifest": {
+      "path": "raw/afternoon/manifest.json",
+      "exists": false,
+      "status": "failed"
+    },
+    "expected_snapshot_count": 11,
+    "snapshot_count_found": 2,
+    "successful_in_window_snapshot_count": 1,
+    "usable_for_price_path_count": 0,
+    "snapshots": [
+      {
+        "path": "raw/afternoon/snapshot-14-25-04.json",
+        "sha256": "bb8a51a63e7eb91b41fc5cfe722d2b43a69a68cfeab9851a523c3f3bd240e5f8",
+        "captured_at_cst": "2026-09-04T14:25:19+08:00",
+        "capture_status": "success",
+        "within_14_25_to_14_35_window": true,
+        "source": "Eastmoney.top_gainers_single_request:33.push2.eastmoney.com",
+        "source_native_timestamp_available": false,
+        "provider_freshness_verified": false,
+        "record_count": 100,
+        "candidate_scan_truncated": false,
+        "usable": false
+      },
+      {
+        "path": "raw/afternoon/snapshot-14-41-00.json",
+        "sha256": "2eb99aa78fc2b6a46b7e5d3caf90420a68d7f52942b0b87bc71c6e91dcec351a",
+        "captured_at_cst": "2026-09-04T14:41:33+08:00",
+        "capture_status": "failure",
+        "within_14_25_to_14_35_window": false,
+        "provider_freshness_verified": false,
+        "record_count": 0,
+        "usable": false,
+        "error_type": "ConnectionError"
+      }
+    ]
+  },
+  "failure_reasons": [
+    "required_manifest_missing",
+    "required_11_snapshot_sequence_incomplete",
+    "provider_native_timestamp_missing",
+    "snapshot_age_at_evaluation_cannot_be_verified_at_or_below_60_seconds",
+    "point_in_time_price_path_not_derivable",
+    "formal_14_30_snapshot_missing"
+  ],
+  "actions": {
+    "scorer_invoked": false,
+    "stocks_ranked": false,
+    "broker_connected": false,
+    "orders_executed": false
+  }
+}

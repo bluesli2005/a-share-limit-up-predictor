@@ -1,0 +1,65 @@
+{
+  "schema_version": "1.0",
+  "run_type": "14:50_late_seal_t1_update",
+  "trade_date": "2026-09-05",
+  "status": "data_quality_failure",
+  "ranking_generated": false,
+  "failure_reasons": [
+    {
+      "code": "non_trading_day",
+      "detail": "2026-09-05 is Saturday and therefore not a regular SSE/SZSE trading day."
+    },
+    {
+      "code": "missing_14_20_limit_up_pool",
+      "path": "raw/afternoon/limit-up-pool-14-20.json"
+    },
+    {
+      "code": "missing_14_20_predictions",
+      "path": "14-20-predictions.json"
+    },
+    {
+      "code": "late_snapshot_outside_window",
+      "path": "raw/afternoon/limit-up-pool-14-50.json",
+      "captured_at_cst": "2026-09-05T15:01:15+08:00",
+      "detail": "The file was captured after the 14:50 late-review window."
+    },
+    {
+      "code": "source_timestamp_unverified",
+      "path": "raw/afternoon/limit-up-pool-14-50.json",
+      "source": "Eastmoney.getTopicZTPool",
+      "source_native_timestamp_available": false
+    }
+  ],
+  "input_status": {
+    "limit_up_pool_14_20": "missing",
+    "predictions_14_20": "missing",
+    "limit_up_pool_14_50": "rejected"
+  },
+  "comparison": {
+    "still_sealed": null,
+    "newly_opened": null,
+    "newly_sealed": null,
+    "queue_value_decay": null,
+    "reopen_count_changes": null,
+    "status": "unavailable_without_two_valid_point_in_time_pools"
+  },
+  "t1_recalculation": {
+    "next_trading_day_limit_up_probability_pct": null,
+    "buyability_probability_pct": null,
+    "status": "unavailable_due_to_invalid_inputs"
+  },
+  "expected_next_day_return": {
+    "value": null,
+    "display": "—",
+    "status": "unavailable_no_separately_calibrated_return_model"
+  },
+  "preservation": {
+    "original_14_20_prediction_modified": false,
+    "note": "No 14:20 prediction file existed to modify; this failure record was written separately."
+  },
+  "trade_execution": {
+    "attempted": false,
+    "executed": false
+  },
+  "disclaimer": "Research and model evaluation only; not personalized investment advice or a trading instruction."
+}

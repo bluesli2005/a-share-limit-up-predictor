@@ -34,6 +34,7 @@ def normalize_records(source_rows, captured):
         "今开": "open", "昨收": "previous_close", "最高": "high", "最低": "low",
         "量比": "volume_ratio", "换手率": "turnover_rate",
         "总市值": "total_market_cap", "流通市值": "float_market_cap",
+        "所属行业": "industry",
     }
     records = []
     for source in source_rows:
@@ -42,6 +43,8 @@ def normalize_records(source_rows, captured):
         if not ticker or ticker.startswith(("4", "8", "9")):
             continue
         row["ticker"] = ticker
+        row["main_business"] = clean(source.get("主营业务"))
+        row["business_evidence"] = None
         row["captured_at_cst"] = captured
         records.append(row)
     return records
@@ -53,6 +56,7 @@ def eastmoney_snapshot():
         "f5": "成交量", "f6": "成交额", "f17": "今开", "f18": "昨收",
         "f15": "最高", "f16": "最低", "f10": "量比", "f8": "换手率",
         "f20": "总市值", "f21": "流通市值",
+        "f100": "所属行业",
     }
     params = {
         "pn": 1, "pz": 100, "po": 1, "np": 1, "fltt": 2, "invt": 2,
@@ -64,27 +68,22 @@ def eastmoney_snapshot():
     errors = []
     diff = []
     used_host = None
-    for attempt in range(3):
-        for host in hosts:
-            url = f"https://{host}/api/qt/clist/get?{query}"
-            request = urllib.request.Request(
-                url,
-                headers={"User-Agent": "Mozilla/5.0", "Referer": "https://quote.eastmoney.com/"},
-            )
-            try:
-                with urllib.request.urlopen(request, timeout=12) as response:
-                    payload = json.load(response)
-                diff = ((payload.get("data") or {}).get("diff") or [])
-                if diff:
-                    used_host = host
-                    break
-                errors.append(f"{host}: empty response")
-            except (OSError, urllib.error.URLError, json.JSONDecodeError) as exc:
-                errors.append(f"{host}: {type(exc).__name__}: {exc}")
-        if diff:
-            break
-        if attempt < 2:
-            time.sleep(attempt + 1)
+    for host in hosts:
+        url = f"https://{host}/api/qt/clist/get?{query}"
+        request = urllib.request.Request(
+            url,
+            headers={"User-Agent": "Mozilla/5.0", "Referer": "https://quote.eastmoney.com/"},
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=5) as response:
+                payload = json.load(response)
+            diff = ((payload.get("data") or {}).get("diff") or [])
+            if diff:
+                used_host = host
+                break
+            errors.append(f"{host}: empty response")
+        except (OSError, urllib.error.URLError, json.JSONDecodeError) as exc:
+            errors.append(f"{host}: {type(exc).__name__}: {exc}")
     if not diff:
         raise RuntimeError("Eastmoney candidate scan failed: " + " | ".join(errors[-9:]))
     captured = datetime.now(CST).isoformat(timespec="seconds")
@@ -92,10 +91,12 @@ def eastmoney_snapshot():
     return captured, normalize_records(rows, captured), f"Eastmoney.top_gainers_single_request:{used_host}"
 
 
-def akshare_snapshot():
+def akshare_snapshot(allow_fallback=True):
     try:
         return eastmoney_snapshot()
     except Exception as direct_error:
+        if not allow_fallback:
+            raise
         import akshare as ak
         frame = ak.stock_zh_a_spot_em()
         source_rows = frame.to_dict("records")
@@ -134,8 +135,8 @@ def tushare_metadata(trade_date):
     return {"enabled": True, "records": len(result)}, result
 
 
-def collect_once(output, mode):
-    captured, rows, source = akshare_snapshot()
+def collect_once(output, mode, allow_fallback=True):
+    captured, rows, source = akshare_snapshot(allow_fallback=allow_fallback)
     trade_date = captured[:10].replace("-", "")
     ts_status, limits = tushare_metadata(trade_date)
     for row in rows:
@@ -165,22 +166,29 @@ def main():
     parser.add_argument("--mode", choices=("opening", "afternoon"), required=True)
     parser.add_argument("--count", type=int, default=1)
     parser.add_argument("--interval-seconds", type=int, default=30)
+    parser.add_argument("--continue-on-error", action="store_true")
+    parser.add_argument("--direct-only", action="store_true")
     args = parser.parse_args()
     manifest = []
+    started = time.monotonic()
     for index in range(max(1, args.count)):
+        due = started + index * max(1, args.interval_seconds)
+        if due > time.monotonic():
+            time.sleep(due - time.monotonic())
         target = args.output
         if args.count > 1:
             target = args.output.parent / f"snapshot-{datetime.now(CST):%H-%M-%S}.json"
         try:
-            payload = collect_once(target, args.mode)
+            payload = collect_once(target, args.mode, allow_fallback=not args.direct_only)
         except Exception as exc:
             write_failure(target, args.mode, exc)
-            raise
-        manifest.append({"path": str(target), "captured_at_cst": payload["captured_at_cst"], "record_count": payload["record_count"]})
-        if index + 1 < args.count:
-            time.sleep(max(1, args.interval_seconds))
-    if args.count > 1:
-        args.output.write_text(json.dumps({"schema_version": "1.0", "run_type": args.mode, "snapshots": manifest}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            payload = json.loads(target.read_text(encoding="utf-8"))
+            if not args.continue_on_error:
+                raise
+        manifest.append({"path": str(target), "captured_at_cst": payload["captured_at_cst"], "status": payload["status"], "record_count": payload["record_count"], "error": payload.get("error")})
+        if args.count > 1:
+            manifest_payload = {"schema_version": "1.0", "run_type": args.mode, "expected_snapshot_count": args.count, "completed_snapshot_count": len(manifest), "successful_snapshot_count": sum(x["status"] == "success" for x in manifest), "snapshots": manifest}
+            args.output.write_text(json.dumps(manifest_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":
