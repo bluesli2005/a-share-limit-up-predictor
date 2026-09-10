@@ -3,6 +3,18 @@ from pathlib import Path
 sys.path.insert(0,str(Path(__file__).parents[1]/"scripts"))
 from backtest import evaluate
 from score_candidates import exclusion_reasons, is_eligible, score_one
+from collect_market_data import normalize_sina_records
+
+def test_sina_market_cap_units_and_bse_filter():
+    rows=normalize_sina_records([
+        {"symbol":"sz000001","code":"000001","name":"测试","trade":"10.5","changepercent":9.1,"volume":1000,"amount":2000,"settlement":"9.6","open":"9.7","high":"10.6","low":"9.5","mktcap":123456,"nmc":65432,"turnoverratio":2.5,"ticktime":"14:40:03"},
+        {"symbol":"bj920001","code":"920001","name":"北交所"},
+    ],"2026-09-10T14:40:04+08:00")
+    assert len(rows)==1
+    assert rows[0]["total_market_cap"]==1_234_560_000
+    assert rows[0]["float_market_cap"]==654_320_000
+    assert rows[0]["volume_lot"]==10
+    assert rows[0]["provider_quote_time"]=="14:40:03"
 
 def test_score_separates_probability_and_accessibility():
     row={"total_market_cap":20_000_000_000,"float_market_cap":12_000_000_000,"snapshot_age_seconds":20,"regulatory_exclusion":False,"emerging_industry_eligible":True,"emerging_industry_category":"next_generation_it","sealed_minutes":100,"queue_ratio":.95,"queue_decay":.02,"turnover_percentile":.55,"volume_ratio_percentile":.65,"float_market_cap_percentile":.35,"total_market_cap_percentile":.4,"float_share_ratio":.7,"theme_strength":.95,"leader_score":.9,"prior_board_quality":.9,"market_breadth":.8,"reopen_count":0}

@@ -1,0 +1,114 @@
+{
+  "schema_version": "1.0",
+  "trade_date": "2026-09-09",
+  "generated_at_cst": "2026-09-09T14:43:00+08:00",
+  "run_type": "14-40_scan",
+  "status": "data_quality_failure",
+  "ranking_permitted": false,
+  "target_trade_date": "2026-09-10",
+  "trading_day_check": {
+    "is_sse_trading_day": true,
+    "is_szse_trading_day": true,
+    "reason": "2026-09-09 is Wednesday and is not within an SSE or SZSE announced 2026 holiday closure period.",
+    "verified_at_cst": "2026-09-09T14:41:28+08:00",
+    "sources": [
+      {
+        "exchange": "SSE",
+        "publisher": "Shanghai Stock Exchange",
+        "url": "https://www.sse.com.cn/disclosure/dealinstruc/closed/"
+      },
+      {
+        "exchange": "SZSE",
+        "publisher": "Shenzhen Stock Exchange",
+        "url": "https://www.szse.cn/disclosure/notice/general/t20251222_618087.html",
+        "notice": "关于2026年部分节假日休市安排的通知",
+        "published_date": "2025-12-22"
+      }
+    ]
+  },
+  "data_sources": [
+    {
+      "name": "Eastmoney candidate snapshot",
+      "path": "raw/afternoon/manifest.json",
+      "manifest_is_snapshot": true,
+      "status": "success",
+      "captured_at_cst": "2026-09-09T14:40:09+08:00",
+      "record_count": 100,
+      "candidate_cutoff_pct": 6.86,
+      "candidate_scan_truncated": false,
+      "provider_native_timestamp_available": false,
+      "retrieval_age_seconds_at_pool_capture": 8,
+      "usable_for_scoring": false,
+      "reason": "The one-capture collector stores the snapshot directly in manifest.json. Local retrieval occurred in the required minute, but the provider supplies no native quote timestamp, so the required source-data age cannot be verified. Candidate records also lack point-in-time business, industry-eligibility, and regulatory evidence."
+    },
+    {
+      "name": "Eastmoney.getTopicZTPool",
+      "path": "raw/afternoon/limit-up-pool-14-40.json",
+      "status": "success",
+      "captured_at_cst": "2026-09-09T14:40:17+08:00",
+      "record_count": 47,
+      "provider_native_timestamp_available": false,
+      "available_fields": {
+        "last_seal_time_present": true,
+        "reopen_count_present": true,
+        "queue_value_present": true
+      },
+      "records_passing_both_market_cap_thresholds": 15,
+      "usable_for_scoring": false,
+      "reason": "Last seal time, reopen count, and queue value were read from the pool, but they cannot overcome the missing provider-native timestamp and mandatory evidence gaps."
+    }
+  ],
+  "data_timestamps_cst": {
+    "required_start": "2026-09-09T14:40:00+08:00",
+    "maximum_age_seconds": 60,
+    "candidate_snapshot_capture": "2026-09-09T14:40:09+08:00",
+    "limit_up_pool_capture": "2026-09-09T14:40:17+08:00",
+    "local_capture_gap_seconds": 8,
+    "source_native_timestamp_available": false,
+    "freshness_result": "unverified"
+  },
+  "input_summary": {
+    "snapshot_records": 100,
+    "snapshot_records_up_at_least_8_pct": 73,
+    "limit_up_pool_records": 47,
+    "limit_up_pool_records_passing_both_market_cap_thresholds": 15,
+    "point_in_time_main_business_evidence_available": 0,
+    "point_in_time_emerging_industry_eligibility_verified": 0,
+    "point_in_time_regulatory_status_verified": 0
+  },
+  "predictions": [],
+  "first_board_promotion_ranking": [],
+  "second_board_and_higher_ranking": [],
+  "strong_unsealed_observations": [],
+  "high_probability_low_buyability": [],
+  "model_outputs": {
+    "next_trading_day_limit_up_probability_pct": null,
+    "buyability_probability_pct": null,
+    "expected_next_day_return_pct": null,
+    "expected_next_day_return_range_pct": null,
+    "expected_return_status": "unavailable_no_separately_calibrated_return_model"
+  },
+  "limit_up_pool_fields": {
+    "last_seal_time": "read_not_scored",
+    "reopen_count": "read_not_scored",
+    "queue_value": "read_not_scored",
+    "queue_decay": null,
+    "queue_decay_reason": "No comparable earlier point-in-time queue observation from the same run."
+  },
+  "failure_reasons": [
+    "provider_native_quote_timestamp_unavailable",
+    "provider_native_limit_up_pool_timestamp_unavailable",
+    "source_data_age_at_evaluation_not_verifiable",
+    "point_in_time_main_business_evidence_missing",
+    "emerging_industry_eligibility_unverified",
+    "point_in_time_regulatory_status_unverified",
+    "mandatory_feature_coverage_not_established"
+  ],
+  "actions": {
+    "scorer_invoked": false,
+    "stocks_ranked": false,
+    "broker_connected": false,
+    "orders_executed": false
+  },
+  "disclaimer": "Research and model evaluation only; not personalized investment advice or a trading instruction."
+}

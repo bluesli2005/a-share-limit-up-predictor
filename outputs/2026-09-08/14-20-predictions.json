@@ -1,0 +1,119 @@
+{
+  "schema_version": "1.0",
+  "trade_date": "2026-09-08",
+  "generated_at_cst": "2026-09-08T15:39:32+08:00",
+  "run_type": "14-20_initial_scan",
+  "status": "data_quality_failure",
+  "ranking_permitted": false,
+  "target_trade_date": "2026-09-09",
+  "trading_day_check": {
+    "is_sse_trading_day": true,
+    "is_szse_trading_day": true,
+    "reason": "2026-09-08 is Tuesday and is not within an SSE or SZSE 2026 announced holiday closure period.",
+    "verified_at_cst": "2026-09-08T15:39:32+08:00",
+    "sources": [
+      {
+        "exchange": "SSE",
+        "publisher": "Shanghai Stock Exchange",
+        "url": "https://www.sse.com.cn/disclosure/dealinstruc/closed/"
+      },
+      {
+        "exchange": "SZSE",
+        "publisher": "Shenzhen Stock Exchange",
+        "url": "https://www.szse.cn/www/disclosure/notice/general/index_4.html",
+        "notice": "关于2026年部分节假日休市安排的通知",
+        "published_date": "2025-12-22"
+      }
+    ]
+  },
+  "data_sources": [
+    {
+      "name": "Eastmoney candidate snapshots",
+      "manifest_path": "raw/afternoon/manifest.json",
+      "expected_snapshot_count": 11,
+      "completed_snapshot_count": 11,
+      "successful_snapshot_count": 3,
+      "failed_snapshot_count": 8,
+      "successful_captures_cst": [
+        "2026-09-08T14:24:32+08:00",
+        "2026-09-08T14:40:18+08:00",
+        "2026-09-08T14:48:15+08:00"
+      ],
+      "provider_native_timestamp_available": false,
+      "freshness_verified_for_14_20": false,
+      "usable_for_14_20_scoring": false,
+      "reason": "No successful snapshot falls within the required 14:15–14:20 CST window; successful neighboring snapshots remain valid archives but cannot be backdated."
+    },
+    {
+      "name": "Eastmoney.getTopicZTPool",
+      "path": "raw/afternoon/limit-up-pool-14-20.json",
+      "status": "success",
+      "captured_at_cst": "2026-09-08T15:04:42+08:00",
+      "provider_native_timestamp_available": false,
+      "record_count": 73,
+      "available_fields": {
+        "last_seal_time_present": true,
+        "reopen_count_present": true,
+        "queue_value_present": true
+      },
+      "freshness_verified_for_14_20": false,
+      "usable_for_14_20_scoring": false,
+      "reason": "The file name indicates 14:20, but its recorded retrieval time is 15:04:42 CST and the provider supplies no native timestamp. Its seal and queue fields therefore cannot support a point-in-time 14:20 forecast."
+    }
+  ],
+  "data_timestamps_cst": {
+    "required_window": "2026-09-08T14:15:00+08:00/2026-09-08T14:20:59+08:00",
+    "maximum_age_seconds": 60,
+    "earliest_successful_candidate_snapshot": "2026-09-08T14:24:32+08:00",
+    "limit_up_pool_capture": "2026-09-08T15:04:42+08:00",
+    "source_native_timestamp_available": false
+  },
+  "predictions": [],
+  "first_board_promotion_ranking": [],
+  "second_board_and_higher_ranking": [],
+  "strong_unsealed_observations": [],
+  "high_probability_low_buyability": [],
+  "model_outputs": {
+    "next_trading_day_limit_up_probability_pct": null,
+    "buyability_probability_pct": null,
+    "expected_next_day_return_pct": null,
+    "expected_next_day_return_range_pct": null,
+    "expected_return_status": "unavailable_no_separately_calibrated_return_model"
+  },
+  "limit_up_pool_fields": {
+    "last_seal_time": "present_but_not_used",
+    "reopen_count": "present_but_not_used",
+    "queue_value": "present_but_not_used",
+    "reason": "The pool is not a verified 14:20 point-in-time observation."
+  },
+  "snapshot_gaps": [
+    {"path": "raw/afternoon/snapshot-14-23-52.json", "captured_at_cst": "2026-09-08T14:23:57+08:00", "status": "failure"},
+    {"path": "raw/afternoon/snapshot-14-40-45.json", "captured_at_cst": "2026-09-08T14:46:52+08:00", "status": "failure"},
+    {"path": "raw/afternoon/snapshot-14-47-10.json", "captured_at_cst": "2026-09-08T14:47:20+08:00", "status": "failure"},
+    {"path": "raw/afternoon/snapshot-14-47-40.json", "captured_at_cst": "2026-09-08T14:47:53+08:00", "status": "failure"},
+    {"path": "raw/afternoon/snapshot-14-48-40.json", "captured_at_cst": "2026-09-08T14:48:44+08:00", "status": "failure"},
+    {"path": "raw/afternoon/snapshot-15-03-32.json", "captured_at_cst": "2026-09-08T15:03:35+08:00", "status": "failure"},
+    {"path": "raw/afternoon/snapshot-15-04-02.json", "captured_at_cst": "2026-09-08T15:04:06+08:00", "status": "failure"},
+    {"path": "raw/afternoon/snapshot-15-04-32.json", "captured_at_cst": "2026-09-08T15:04:39+08:00", "status": "failure"}
+  ],
+  "successful_neighboring_snapshots": [
+    {"path": "raw/afternoon/snapshot-14-24-22.json", "captured_at_cst": "2026-09-08T14:24:32+08:00", "status": "success", "record_count": 100},
+    {"path": "raw/afternoon/snapshot-14-40-15.json", "captured_at_cst": "2026-09-08T14:40:18+08:00", "status": "success", "record_count": 100},
+    {"path": "raw/afternoon/snapshot-14-48-09.json", "captured_at_cst": "2026-09-08T14:48:15+08:00", "status": "success", "record_count": 100}
+  ],
+  "failure_reasons": [
+    "no_successful_snapshot_in_14_15_to_14_20_window",
+    "source_native_quote_timestamps_unavailable",
+    "snapshot_age_at_14_20_not_verified_at_or_below_60_seconds",
+    "limit_up_pool_retrieved_at_15_04_42_not_14_20",
+    "limit_up_pool_source_native_timestamp_unavailable",
+    "point_in_time_last_seal_reopen_count_and_queue_value_unavailable"
+  ],
+  "actions": {
+    "scorer_invoked": false,
+    "stocks_ranked": false,
+    "broker_connected": false,
+    "orders_executed": false
+  },
+  "disclaimer": "Research and model evaluation only; not personalized investment advice or a trading instruction."
+}

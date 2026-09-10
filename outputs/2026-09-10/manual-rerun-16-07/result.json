@@ -1,0 +1,146 @@
+{
+  "schema_version": "1.0",
+  "trade_date": "2026-09-10",
+  "generated_at_cst": "2026-09-10T16:09:07+08:00",
+  "run_type": "post_close_manual_review",
+  "capture_context": {
+    "requested_label": "manual-rerun-16-07",
+    "candidate_snapshot_captured_at_cst": "2026-09-10T16:07:48+08:00",
+    "limit_up_pool_captured_at_cst": "2026-09-10T16:07:49+08:00",
+    "market_session": "post_close",
+    "valid_14_40_point_in_time_forecast": false,
+    "explanation": "This 16:07 CST manual rerun was captured after the 15:00 mainland market close. It is a post-close review and cannot be backdated to, substituted for, or merged into a valid 14:40 CST point-in-time forecast."
+  },
+  "status": "data_quality_failure",
+  "ranking_permitted": false,
+  "formal_probability_supported": false,
+  "target_trade_date": null,
+  "retry_assessment": {
+    "overall_eastmoney_collection_error_fixed": false,
+    "candidate_market_collection_fixed": false,
+    "limit_up_pool_collection_succeeded": true,
+    "formal_14_40_candidate_error": "Eastmoney candidate scan failed: push2.eastmoney.com: HTTPError: HTTP Error 502: Bad Gateway | 82.push2.eastmoney.com: RemoteDisconnected: Remote end closed connection without response | 33.push2.eastmoney.com: RemoteDisconnected: Remote end closed connection without response",
+    "manual_rerun_candidate_error": "('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))",
+    "conclusion": "The retry did not fix the overall Eastmoney collection failure: market.json still failed with RemoteDisconnected and returned zero records. The limit-up-pool endpoint did succeed with 35 records, but that endpoint had also succeeded in the formal 14:40 run and cannot replace the missing candidate snapshot."
+  },
+  "data_sources": [
+    {
+      "name": "Eastmoney candidate market snapshot",
+      "path": "raw/market.json",
+      "status": "failure",
+      "captured_at_cst": "2026-09-10T16:07:48+08:00",
+      "record_count": 0,
+      "error_type": "ConnectionError",
+      "error": "('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))",
+      "usable_for_scoring": false
+    },
+    {
+      "name": "Eastmoney.getTopicZTPool",
+      "path": "raw/limit-up-pool.json",
+      "status": "success",
+      "captured_at_cst": "2026-09-10T16:07:49+08:00",
+      "record_count": 35,
+      "source_native_timestamp_available": false,
+      "usable_for_scoring": false,
+      "reason": "The pool is a post-close capture without a provider-native quote timestamp and is not a 14:40 point-in-time universe. It cannot replace the failed candidate market snapshot or establish mandatory business, industry, regulatory, freshness, and feature-coverage evidence."
+    }
+  ],
+  "freshness_assessment": {
+    "required_snapshot_time_cst": "2026-09-10T14:40:00+08:00",
+    "market_close_time_cst": "2026-09-10T15:00:00+08:00",
+    "maximum_data_age_seconds": 60,
+    "evaluation_time_cst": "2026-09-10T16:09:07+08:00",
+    "source_native_timestamp_available": false,
+    "result": "failed",
+    "reason": "Both inputs were retrieved after the 15:00 close, more than 87 minutes after the required 14:40 point in time; provider-native source-data age at 14:40 cannot be verified."
+  },
+  "input_summary": {
+    "candidate_market_records": 0,
+    "limit_up_pool_records": 35,
+    "limit_up_pool_first_board_records": 26,
+    "limit_up_pool_second_board_and_higher_records": 9,
+    "limit_up_pool_records_passing_both_market_cap_thresholds": 10,
+    "limit_up_pool_records_below_total_market_cap_threshold": 25,
+    "limit_up_pool_records_below_float_market_cap_threshold": 18,
+    "point_in_time_main_business_evidence_available": 0,
+    "point_in_time_industry_eligibility_verified": 0,
+    "point_in_time_regulatory_status_verified": 0,
+    "records_with_established_feature_coverage_at_least_60_pct": 0
+  },
+  "eligibility_enforcement": {
+    "total_market_cap_min_cny": 10000000000,
+    "float_market_cap_min_cny": 5000000000,
+    "below_or_missing_either_market_cap_excluded": true,
+    "emerging_industry_requires_traceable_business_evidence": true,
+    "keyword_or_industry_name_only_insufficient": true,
+    "missing_regulatory_verification_excluded": true,
+    "minimum_feature_coverage_pct": 60,
+    "all_unverified_records_excluded_from_formal_scoring": true
+  },
+  "limit_up_pool_field_usage": {
+    "last_seal_time": {
+      "records_read": 35,
+      "missing_records": 0,
+      "earliest": "09:25:00",
+      "latest": "14:49:15",
+      "status": "read_not_scored"
+    },
+    "reopen_count": {
+      "records_read": 35,
+      "missing_records": 0,
+      "minimum": 0,
+      "maximum": 7,
+      "status": "read_not_scored"
+    },
+    "queue_value_rmb": {
+      "records_read": 35,
+      "missing_records": 0,
+      "minimum": 9034854,
+      "maximum": 541973484,
+      "status": "read_not_scored"
+    },
+    "queue_decay": null,
+    "queue_decay_reason": "No comparable earlier point-in-time queue observation from the same manual run."
+  },
+  "failure_reasons": [
+    "post_close_capture_not_valid_for_14_40_point_in_time_forecast",
+    "candidate_market_collection_failed",
+    "candidate_market_snapshot_empty",
+    "provider_native_timestamps_unavailable",
+    "source_data_age_at_14_40_not_verifiable",
+    "applicable_limit_price_and_listing_rule_verification_missing",
+    "point_in_time_main_business_evidence_missing",
+    "emerging_industry_eligibility_unverified",
+    "point_in_time_regulatory_status_unverified",
+    "mandatory_feature_coverage_below_required_threshold",
+    "strong_unsealed_universe_unavailable"
+  ],
+  "predictions": [],
+  "first_board_promotion_ranking": [],
+  "second_board_and_higher_ranking": [],
+  "strong_unsealed_observations": [],
+  "high_probability_low_buyability": [],
+  "model_outputs": {
+    "next_trading_day_limit_up_probability_pct": null,
+    "buyability_probability_pct": null,
+    "late_break_risk_pct": null,
+    "expected_next_day_return_pct": null,
+    "expected_next_day_return_range_pct": null,
+    "reason": "Formal scoring was not invoked because freshness, candidate-universe, evidence, regulatory, and feature-coverage gates failed."
+  },
+  "actions": {
+    "scorer_invoked": false,
+    "stocks_ranked": false,
+    "formal_14_40_files_modified": false,
+    "broker_connected": false,
+    "orders_submitted": false,
+    "orders_executed": false
+  },
+  "preserved_formal_14_40_artifacts": [
+    "../14-40-prediction.md",
+    "../14-40-predictions.json",
+    "../raw/afternoon/manifest.json",
+    "../raw/afternoon/limit-up-pool-14-40.json"
+  ],
+  "disclaimer": "Research and model evaluation only; not personalized investment advice or a trading instruction."
+}

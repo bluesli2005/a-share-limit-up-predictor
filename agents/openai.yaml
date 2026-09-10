@@ -1,4 +1,4 @@
 interface:
   display_name: "A股连板概率分析"
-  short_description: "14:20初筛并于14:50更新T+1连板概率"
-  default_prompt: "北京时间14:20扫描符合范围的A股，14:50复核封板、炸板和封单衰减并更新T+1概率；不生成T+2预测。"
+  short_description: "每日14:40扫描并评估T+1连板概率"
+  default_prompt: "北京时间14:40扫描符合范围的A股，核验封板、炸板和封单强度并输出T+1概率；不生成T+2预测。"

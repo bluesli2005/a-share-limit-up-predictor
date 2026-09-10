@@ -50,6 +50,47 @@ def normalize_records(source_rows, captured):
     return records
 
 
+def normalize_sina_records(source_rows, captured):
+    """Normalize Sina's top-gainer response; market-cap fields are in CNY 10k."""
+    records = []
+    for source in source_rows:
+        ticker = str(source.get("code") or "").zfill(6)
+        symbol = str(source.get("symbol") or "")
+        if not ticker or symbol.startswith("bj") or ticker.startswith(("4", "8", "9")):
+            continue
+
+        def number(name, multiplier=1):
+            value = source.get(name)
+            return None if value in (None, "", "--") else float(value) * multiplier
+
+        records.append({
+            "ticker": ticker, "name": source.get("name"),
+            "last_price": number("trade"), "pct_change": number("changepercent"),
+            "volume_lot": None if source.get("volume") in (None, "", "--") else float(source["volume"]) / 100,
+            "turnover_value": number("amount"), "open": number("open"),
+            "previous_close": number("settlement"), "high": number("high"), "low": number("low"),
+            "volume_ratio": None, "turnover_rate": number("turnoverratio"),
+            "total_market_cap": number("mktcap", 10_000), "float_market_cap": number("nmc", 10_000),
+            "industry": None, "main_business": None, "business_evidence": None,
+            "provider_quote_time": source.get("ticktime"), "captured_at_cst": captured,
+        })
+    return records
+
+
+def sina_snapshot():
+    params = {"page": 1, "num": 200, "sort": "changepercent", "asc": 0,
+              "node": "hs_a", "symbol": "", "_s_r_a": "page"}
+    url = "https://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/Market_Center.getHQNodeData?" + urllib.parse.urlencode(params)
+    request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0", "Referer": "https://finance.sina.com.cn/"})
+    with urllib.request.urlopen(request, timeout=12) as response:
+        payload = json.load(response)
+    captured = datetime.now(CST).isoformat(timespec="seconds")
+    records = normalize_sina_records(payload or [], captured)
+    if not records:
+        raise RuntimeError("Sina top-gainer scan returned no eligible A-share records")
+    return captured, records, "Sina.Market_Center.getHQNodeData"
+
+
 def eastmoney_snapshot():
     field_map = {
         "f12": "代码", "f14": "名称", "f2": "最新价", "f3": "涨跌幅",
@@ -97,14 +138,10 @@ def akshare_snapshot(allow_fallback=True):
     except Exception as direct_error:
         if not allow_fallback:
             raise
-        import akshare as ak
-        frame = ak.stock_zh_a_spot_em()
-        source_rows = frame.to_dict("records")
-        captured = datetime.now(CST).isoformat(timespec="seconds")
-        records = normalize_records(source_rows, captured)
-        if not records:
-            raise RuntimeError(f"direct={direct_error!r}; AKShare returned no records")
-        return captured, records, "AKShare.stock_zh_a_spot_em"
+        try:
+            return sina_snapshot()
+        except Exception as sina_error:
+            raise RuntimeError(f"Eastmoney={direct_error!r}; Sina={sina_error!r}") from sina_error
 
 
 def write_failure(output, mode, exc):
@@ -149,6 +186,8 @@ def collect_once(output, mode, allow_fallback=True):
         "status": "success",
         "source": source,
         "source_native_timestamp_available": False,
+        "provider_quote_time_available": source.startswith("Sina.") and all(row.get("provider_quote_time") for row in rows),
+        "provider_quote_date_available": False,
         "tushare": ts_status,
         "record_count": len(rows),
         "candidate_cutoff_pct": cutoff_pct,
