@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>Label</key><string>com.openai.a-share-limit-up-predictor-midday</string>
+<key>ProgramArguments</key><array><string>/bin/zsh</string><string>/Users/wenbiaoli/.agents/skills/a-share-limit-up-predictor/scripts/run_midday.sh</string></array>
+<key>EnvironmentVariables</key><dict><key>TZ</key><string>Asia/Shanghai</string></dict>
+<key>StartCalendarInterval</key><array>
+<dict><key>Weekday</key><integer>2</integer><key>Hour</key><integer>12</integer><key>Minute</key><integer>30</integer></dict>
+<dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>12</integer><key>Minute</key><integer>30</integer></dict>
+<dict><key>Weekday</key><integer>4</integer><key>Hour</key><integer>12</integer><key>Minute</key><integer>30</integer></dict>
+<dict><key>Weekday</key><integer>5</integer><key>Hour</key><integer>12</integer><key>Minute</key><integer>30</integer></dict>
+<dict><key>Weekday</key><integer>6</integer><key>Hour</key><integer>12</integer><key>Minute</key><integer>30</integer></dict>
+</array>
+<key>StandardOutPath</key><string>/Users/wenbiaoli/.agents/skills/a-share-limit-up-predictor/outputs/midday.stdout.log</string>
+<key>StandardErrorPath</key><string>/Users/wenbiaoli/.agents/skills/a-share-limit-up-predictor/outputs/midday.stderr.log</string>
+</dict></plist>

@@ -1,12 +1,12 @@
 ---
 name: a-share-limit-up-predictor
-description: Screen Shanghai and Shenzhen A-shares at 14:40 China Standard Time and estimate next-trading-day limit-up probability, optional expected return, and buyability for qualifying emerging-industry stocks. Use for first-board and higher continuation research and backtesting; not for execution or guaranteed predictions.
+description: Capture Shanghai and Shenzhen A-share conditions at 11:30 and compare them with a 14:40 scan to estimate next-trading-day limit-up probability, optional expected return, and buyability for qualifying emerging-industry stocks. Use for first-board and higher continuation research and backtesting; not for execution or guaranteed predictions.
 argument-hint: "[scan|score|backtest]"
 ---
 
 # A-Share Limit-Up Continuation Research
 
-Produce one timestamped ranking at 14:40 China Standard Time on mainland-China trading days. Never connect to a broker, submit an order, promise a fill, or claim that a stock will certainly remain sealed.
+Capture an intermediate morning-close snapshot at 11:30 and produce one timestamped ranking at 14:40 China Standard Time on mainland-China trading days. Never connect to a broker, submit an order, promise a fill, or claim that a stock will certainly remain sealed.
 
 ## Universe
 
@@ -24,7 +24,7 @@ Include verified `board_count=1` stocks as `首板候选`, as well as second-boa
 
 Read [data contract](references/data_contract.md) before collection. Require data age no greater than 60 seconds at evaluation time; reject missing or stale timestamps. Collect price path, applicable limit, first/last seal time, continuously sealed minutes, reopen count, queue value and decay, unmatched buy volume, turnover, volume ratio, traded value, total market cap, free-float market cap, free-float ratio, board count, prior-board quality, sector breadth and leader status, news, announcements, exchange inquiries, suspensions, abnormal-trading notices, and market regime.
 
-Use `scripts/collect_market_data.py` for scheduled snapshots. Capture the quote provider's `industry` field in the raw snapshot. For every stock presented in a ranking or observation list, enrich `main_business` from the latest point-in-time annual/interim report, prospectus, exchange disclosure or company product disclosure and retain `business_evidence`; never infer主营业务 from the company name or concept tags. AKShare is the default quote source and Tushare supplements limit prices when `TUSHARE_TOKEN` is configured. Treat these as source adapters, not guarantees: retain source metadata, never equate local retrieval time with exchange time, and downgrade or reject data that cannot satisfy freshness requirements.
+Use `scripts/collect_market_data.py` for scheduled snapshots. Start the 11:30 task on time and collect after a short 5–20 second settling delay. Preserve it only as intermediate point-in-time evidence; do not generate a separate 11:30 probability ranking. Capture the quote provider's `industry` field in the raw snapshot. For every stock presented in a ranking or observation list, enrich `main_business` from the latest point-in-time annual/interim report, prospectus, exchange disclosure or company product disclosure and retain `business_evidence`; never infer主营业务 from the company name or concept tags. AKShare is the default quote source and Tushare supplements limit prices when `TUSHARE_TOKEN` is configured. Treat these as source adapters, not guarantees: retain source metadata, never equate local retrieval time with exchange time, and downgrade or reject data that cannot satisfy freshness requirements.
 
 Hard-exclude a stock when a current authoritative source identifies suspension or expected suspension, severe abnormal trading/volatility, exchange重点监控, investigation, unresolved material regulatory inquiry, or another condition that makes next-day comparability or normal trading unreliable. If regulatory status cannot be verified, exclude rather than assume it is clear.
 
@@ -57,8 +57,10 @@ Provide a `首板晋级概率榜`, a `二板及以上连板概率榜`, a separat
 
 Archive every run locally by China trading date. Read [scheduling and archive rules](references/scheduling.md) before installing or changing scheduled runs. Preserve both a human-readable Markdown report and machine-readable JSON for the 14:40 run. Historical comparisons must use archived point-in-time inputs and predictions rather than reconstructed values.
 
+At 14:40, read `11-30-to-14-40-comparison.json` and use available changes in price, seal status, queue value, traded value, turnover rate, volume ratio, and sector breadth as supporting features. Distinguish afternoon new seals, still-sealed stocks, and morning seals that opened in the afternoon. Missing or incomparable observations remain null and reduce confidence; never reconstruct the 11:30 state from later data.
+
 ## Scheduling and validation
 
-Run one afternoon LaunchAgent at exactly 14:40 Asia/Shanghai. Do not schedule or generate a 09:25 opening review, a 14:20 scan, or a 14:50 update. Archive a failed snapshot and report the failure. The runner must verify the SSE/SZSE trading calendar and exit on holidays or non-trading days. Scheduling starts research only and never touches a trading system.
+Run an intermediate collection LaunchAgent at 11:30 and the final analysis LaunchAgent at exactly 14:40 Asia/Shanghai. Do not schedule or generate a 09:25 opening review, a 14:20 scan, or a 14:50 update. The 11:30 task archives raw evidence only; the 14:40 task performs the comparison and remains the sole T+1 report. Archive a failed snapshot and report the failure. The runner must verify the SSE/SZSE trading calendar and exit on holidays or non-trading days. Scheduling starts research only and never touches a trading system.
 
 > Research and model evaluation only; not personalized investment advice or a trading instruction.

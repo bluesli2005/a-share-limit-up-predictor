@@ -1,5 +1,7 @@
 # 14:40数据契约
 
+11:30午间快照使用与14:40相同的原始行情和涨停池字段，但不包含模型概率。14:40逐股对照文件另外保存 `midday_pct_change`、`afternoon_pct_change`、`pct_change_delta_pct_points`、`seal_event`、`midday_queue_value`、`afternoon_queue_value`、`queue_value_change_pct`、`turnover_value_delta`、`turnover_rate_delta_pct_points`、`volume_ratio_delta`、`afternoon_strength` 和 `sector_breadth_change`。两个时点不可比时字段保持 null，不得使用0或中性值替代。
+
 候选记录至少包含 `trade_date`, `snapshot_time_cst`, `snapshot_age_seconds`, `ticker`, `name`, `board`, `theme`, `industry`, `main_business`, `business_evidence`, `emerging_industry_eligible`, `emerging_industry_category`, `industry_evidence`, `is_st`, `listing_days`, `pct_change`, `at_limit_up`, `applicable_limit_pct`, `board_count`, `sealed_minutes`, `reopen_count`, `queue_ratio`, `queue_decay`, `turnover_percentile`, `volume_ratio_percentile`, `total_market_cap`, `float_market_cap`, `float_share_ratio`, `total_market_cap_percentile`, `float_market_cap_percentile`, `theme_strength`, `leader_score`, `prior_board_quality`, `market_breadth`, `regulatory_exclusion`。`next_day_limit_up`和`probability`仅供T+1回测；如启用收益模型，再保存`next_day_return`及对应预测字段。概率输入统一使用0–1，展示输出统一使用0%–100%。不得生成T+2字段。
 
 `industry`保存行情源的所属行业及来源；`main_business`使用最新且在预测时点可得的定期报告、招股书、交易所公告或公司产品披露压缩为一句话；`business_evidence`至少保存来源标题、URL或公告标识、发布日期和核验时间。无法核验主营业务时填null并明确标注，不能使用概念标签代替。

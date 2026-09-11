@@ -202,7 +202,7 @@ def collect_once(output, mode, allow_fallback=True):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", required=True, type=Path)
-    parser.add_argument("--mode", choices=("opening", "afternoon"), required=True)
+    parser.add_argument("--mode", choices=("opening", "midday", "afternoon"), required=True)
     parser.add_argument("--count", type=int, default=1)
     parser.add_argument("--interval-seconds", type=int, default=30)
     parser.add_argument("--continue-on-error", action="store_true")

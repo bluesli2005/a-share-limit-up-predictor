@@ -4,6 +4,7 @@ sys.path.insert(0,str(Path(__file__).parents[1]/"scripts"))
 from backtest import evaluate
 from score_candidates import exclusion_reasons, is_eligible, score_one
 from collect_market_data import normalize_sina_records
+from compare_intraday_snapshots import compare
 
 def test_sina_market_cap_units_and_bse_filter():
     rows=normalize_sina_records([
@@ -40,3 +41,14 @@ def test_first_board_and_unsealed_candidates_are_grouped_separately():
     assert score_one({**base,"board_count":1,"at_limit_up":True})["candidate_group"]=="first_board"
     assert score_one({**base,"board_count":2,"at_limit_up":True})["candidate_group"]=="higher_board"
     assert score_one({**base,"board_count":1,"at_limit_up":False})["candidate_group"]=="strong_unsealed"
+
+def test_midday_comparison_tracks_seal_and_flow_changes():
+    market=lambda pct, amount, turnover, ratio: {"status":"success","records":[{"ticker":"000001","name":"测试","industry":"半导体","pct_change":pct,"turnover_value":amount,"turnover_rate":turnover,"volume_ratio":ratio,"total_market_cap":20_000_000_000,"float_market_cap":10_000_000_000}]}
+    pool=lambda queue, reopen: {"status":"success","records":[{"ticker":"000001","name":"测试","queue_value":queue,"reopen_count":reopen}]}
+    result=compare(market(9,100,2,1.5),pool(100,0),market(10,180,3,1.8),pool(150,1))
+    row=result["records"][0]
+    assert result["status"]=="success"
+    assert row["seal_event"]=="afternoon_resealed"
+    assert row["queue_value_change_pct"]==50.0
+    assert row["turnover_value_delta"]==80.0
+    assert row["afternoon_strength"]=="strengthened"
