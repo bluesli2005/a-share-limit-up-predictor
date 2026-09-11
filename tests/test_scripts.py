@@ -5,6 +5,7 @@ from backtest import evaluate
 from score_candidates import exclusion_reasons, is_eligible, score_one
 from collect_market_data import normalize_sina_records
 from compare_intraday_snapshots import compare
+from collect_with_retries import usable
 
 def test_sina_market_cap_units_and_bse_filter():
     rows=normalize_sina_records([
@@ -52,3 +53,14 @@ def test_midday_comparison_tracks_seal_and_flow_changes():
     assert row["queue_value_change_pct"]==50.0
     assert row["turnover_value_delta"]==80.0
     assert row["afternoon_strength"]=="strengthened"
+
+def test_retry_collector_requires_success_with_records():
+    import tempfile
+    with tempfile.TemporaryDirectory() as directory:
+        target=Path(directory)/"payload.json"
+        target.write_text('{"status":"success","record_count":1}',encoding="utf-8")
+        assert usable(target)
+        target.write_text('{"status":"success","record_count":0}',encoding="utf-8")
+        assert not usable(target)
+        target.write_text('{"status":"failure","record_count":10}',encoding="utf-8")
+        assert not usable(target)
