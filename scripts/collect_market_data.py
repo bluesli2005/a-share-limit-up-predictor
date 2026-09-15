@@ -78,17 +78,43 @@ def normalize_sina_records(source_rows, captured):
 
 
 def sina_snapshot():
-    params = {"page": 1, "num": 200, "sort": "changepercent", "asc": 0,
-              "node": "hs_a", "symbol": "", "_s_r_a": "page"}
-    url = "https://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/Market_Center.getHQNodeData?" + urllib.parse.urlencode(params)
-    request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0", "Referer": "https://finance.sina.com.cn/"})
-    with urllib.request.urlopen(request, timeout=12) as response:
-        payload = json.load(response)
+    page_size = 200
+    source_rows, seen = [], set()
+    scan_complete = False
+    pages_fetched = 0
+    for page in range(1, 31):
+        params = {"page": page, "num": page_size, "sort": "changepercent", "asc": 0,
+                  "node": "hs_a", "symbol": "", "_s_r_a": "page"}
+        url = "https://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/Market_Center.getHQNodeData?" + urllib.parse.urlencode(params)
+        request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0", "Referer": "https://finance.sina.com.cn/"})
+        with urllib.request.urlopen(request, timeout=12) as response:
+            payload = json.load(response)
+        batch = payload or []
+        pages_fetched += 1
+        new_rows = [row for row in batch if str(row.get("symbol") or row.get("code")) not in seen]
+        for row in new_rows:
+            seen.add(str(row.get("symbol") or row.get("code")))
+        source_rows.extend(new_rows)
+        if not batch:
+            scan_complete = True
+            break
+        try:
+            cutoff = float(batch[-1].get("changepercent"))
+        except (TypeError, ValueError):
+            cutoff = None
+        if len(batch) < page_size or (cutoff is not None and cutoff < 8):
+            scan_complete = True
+            break
+        if not new_rows:
+            break
     captured = datetime.now(CST).isoformat(timespec="seconds")
-    records = normalize_sina_records(payload or [], captured)
+    records = normalize_sina_records(source_rows, captured)
     if not records:
         raise RuntimeError("Sina top-gainer scan returned no eligible A-share records")
-    return captured, records, "Sina.Market_Center.getHQNodeData"
+    return captured, records, "Sina.Market_Center.getHQNodeData", {
+        "candidate_scan_complete": scan_complete,
+        "scan_pages": pages_fetched,
+    }
 
 
 def eastmoney_snapshot():
@@ -104,32 +130,56 @@ def eastmoney_snapshot():
         "fid": "f3", "fs": "m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23",
         "fields": ",".join(field_map),
     }
-    query = urllib.parse.urlencode(params)
     hosts = ("push2.eastmoney.com", "82.push2.eastmoney.com", "33.push2.eastmoney.com")
-    errors = []
-    diff = []
-    used_host = None
-    for host in hosts:
-        url = f"https://{host}/api/qt/clist/get?{query}"
-        request = urllib.request.Request(
-            url,
-            headers={"User-Agent": "Mozilla/5.0", "Referer": "https://quote.eastmoney.com/"},
-        )
+    errors, all_rows, used_hosts, seen = [], [], [], set()
+    scan_complete = False
+    pages_fetched = 0
+    for page in range(1, 61):
+        params["pn"] = page
+        query = urllib.parse.urlencode(params)
+        diff, used_host = [], None
+        for host in hosts:
+            url = f"https://{host}/api/qt/clist/get?{query}"
+            request = urllib.request.Request(
+                url,
+                headers={"User-Agent": "Mozilla/5.0", "Referer": "https://quote.eastmoney.com/"},
+            )
+            try:
+                with urllib.request.urlopen(request, timeout=5) as response:
+                    payload = json.load(response)
+                diff = ((payload.get("data") or {}).get("diff") or [])
+                if diff:
+                    used_host = host
+                    break
+                errors.append(f"{host} page {page}: empty response")
+            except (OSError, urllib.error.URLError, json.JSONDecodeError) as exc:
+                errors.append(f"{host} page {page}: {type(exc).__name__}: {exc}")
+        if not diff:
+            break
+        pages_fetched += 1
+        used_hosts.append(used_host)
+        new_rows = [row for row in diff if str(row.get("f12") or "") not in seen]
+        for row in new_rows:
+            seen.add(str(row.get("f12") or ""))
+        all_rows.extend(new_rows)
         try:
-            with urllib.request.urlopen(request, timeout=5) as response:
-                payload = json.load(response)
-            diff = ((payload.get("data") or {}).get("diff") or [])
-            if diff:
-                used_host = host
-                break
-            errors.append(f"{host}: empty response")
-        except (OSError, urllib.error.URLError, json.JSONDecodeError) as exc:
-            errors.append(f"{host}: {type(exc).__name__}: {exc}")
-    if not diff:
+            cutoff = float(diff[-1].get("f3"))
+        except (TypeError, ValueError):
+            cutoff = None
+        if len(diff) < params["pz"] or (cutoff is not None and cutoff < 8):
+            scan_complete = True
+            break
+        if not new_rows:
+            break
+    if not all_rows:
         raise RuntimeError("Eastmoney candidate scan failed: " + " | ".join(errors[-9:]))
     captured = datetime.now(CST).isoformat(timespec="seconds")
-    rows = [{field_map[key]: value for key, value in source.items() if key in field_map} for source in diff]
-    return captured, normalize_records(rows, captured), f"Eastmoney.top_gainers_single_request:{used_host}"
+    rows = [{field_map[key]: value for key, value in source.items() if key in field_map} for source in all_rows]
+    source = "Eastmoney.top_gainers_paged:" + ",".join(dict.fromkeys(used_hosts))
+    return captured, normalize_records(rows, captured), source, {
+        "candidate_scan_complete": scan_complete,
+        "scan_pages": pages_fetched,
+    }
 
 
 def akshare_snapshot(allow_fallback=True):
@@ -173,7 +223,7 @@ def tushare_metadata(trade_date):
 
 
 def collect_once(output, mode, allow_fallback=True):
-    captured, rows, source = akshare_snapshot(allow_fallback=allow_fallback)
+    captured, rows, source, scan_metadata = akshare_snapshot(allow_fallback=allow_fallback)
     trade_date = captured[:10].replace("-", "")
     ts_status, limits = tushare_metadata(trade_date)
     for row in rows:
@@ -191,7 +241,9 @@ def collect_once(output, mode, allow_fallback=True):
         "tushare": ts_status,
         "record_count": len(rows),
         "candidate_cutoff_pct": cutoff_pct,
-        "candidate_scan_truncated": cutoff_pct is not None and float(cutoff_pct) >= 8.0,
+        "candidate_scan_complete": scan_metadata["candidate_scan_complete"],
+        "candidate_scan_truncated": not scan_metadata["candidate_scan_complete"],
+        "scan_pages": scan_metadata["scan_pages"],
         "records": rows,
     }
     output.parent.mkdir(parents=True, exist_ok=True)

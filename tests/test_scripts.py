@@ -3,9 +3,12 @@ from pathlib import Path
 sys.path.insert(0,str(Path(__file__).parents[1]/"scripts"))
 from backtest import evaluate
 from score_candidates import exclusion_reasons, is_eligible, score_one
-from collect_market_data import normalize_sina_records
+from collect_market_data import eastmoney_snapshot, normalize_sina_records
 from compare_intraday_snapshots import compare
-from collect_with_retries import usable
+from collect_with_retries import assess_payload, usable
+from write_run_audit import append_event
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 def test_sina_market_cap_units_and_bse_filter():
     rows=normalize_sina_records([
@@ -17,6 +20,22 @@ def test_sina_market_cap_units_and_bse_filter():
     assert rows[0]["float_market_cap"]==654_320_000
     assert rows[0]["volume_lot"]==10
     assert rows[0]["provider_quote_time"]=="14:40:03"
+
+def test_eastmoney_scan_paginates_until_candidates_are_complete():
+    import io
+    import json
+    from unittest.mock import patch
+    first_page=[{"f12":f"{index:06d}","f14":"测试","f3":9} for index in range(1,101)]
+    second_page=[{"f12":"000101","f14":"测试","f3":7}]
+    responses=[
+        io.StringIO(json.dumps({"data":{"diff":first_page}})),
+        io.StringIO(json.dumps({"data":{"diff":second_page}})),
+    ]
+    with patch("collect_market_data.urllib.request.urlopen",side_effect=responses):
+        _,rows,_,metadata=eastmoney_snapshot()
+    assert len(rows)==101
+    assert metadata["scan_pages"]==2
+    assert metadata["candidate_scan_complete"] is True
 
 def test_score_separates_probability_and_accessibility():
     row={"total_market_cap":20_000_000_000,"float_market_cap":12_000_000_000,"snapshot_age_seconds":20,"regulatory_exclusion":False,"emerging_industry_eligible":True,"emerging_industry_category":"next_generation_it","sealed_minutes":100,"queue_ratio":.95,"queue_decay":.02,"turnover_percentile":.55,"volume_ratio_percentile":.65,"float_market_cap_percentile":.35,"total_market_cap_percentile":.4,"float_share_ratio":.7,"theme_strength":.95,"leader_score":.9,"prior_board_quality":.9,"market_breadth":.8,"reopen_count":0}
@@ -58,9 +77,43 @@ def test_retry_collector_requires_success_with_records():
     import tempfile
     with tempfile.TemporaryDirectory() as directory:
         target=Path(directory)/"payload.json"
-        target.write_text('{"status":"success","record_count":1}',encoding="utf-8")
-        assert usable(target)
+        now=datetime.now(ZoneInfo("Asia/Shanghai"))
+        payload={"status":"success","record_count":1,"captured_at_cst":now.isoformat(),"source_native_timestamp_available":True,"candidate_scan_complete":True,"candidate_scan_truncated":False,"records":[{"ticker":"000001","name":"测试","last_price":10,"pct_change":9,"previous_close":9.1,"total_market_cap":20_000_000_000,"float_market_cap":10_000_000_000,"industry":"半导体","up_limit":10}]}
+        import json
+        target.write_text(json.dumps(payload,ensure_ascii=False),encoding="utf-8")
+        assert usable(target,evaluated_at=now)
+        payload["source_native_timestamp_available"]=False
+        target.write_text(json.dumps(payload,ensure_ascii=False),encoding="utf-8")
+        assessment=assess_payload(target,"market",now)
+        assert not assessment["quality_usable"]
+        assert "provider_native_timestamp_unavailable" in assessment["quality_issues"]
+        payload["source_native_timestamp_available"]=True
+        payload["candidate_scan_truncated"]=True
+        target.write_text(json.dumps(payload,ensure_ascii=False),encoding="utf-8")
+        assert not usable(target,evaluated_at=now)
         target.write_text('{"status":"success","record_count":0}',encoding="utf-8")
         assert not usable(target)
         target.write_text('{"status":"failure","record_count":10}',encoding="utf-8")
         assert not usable(target)
+
+def test_missing_midday_does_not_create_false_afternoon_transition():
+    afternoon_market={"status":"success","records":[{"ticker":"000001","name":"测试","industry":"半导体","pct_change":10,"turnover_value":180,"turnover_rate":3,"volume_ratio":1.8}]}
+    afternoon_pool={"status":"success","records":[{"ticker":"000001","name":"测试","queue_value":150,"reopen_count":1}]}
+    result=compare(None,None,afternoon_market,afternoon_pool)
+    row=result["records"][0]
+    assert result["status"]=="partial"
+    assert row["midday_at_limit_up"] is None
+    assert row["seal_event"] is None
+    assert row["afternoon_strength"]=="unavailable"
+    assert result["sector_breadth_change"][0]["midday_strong_count"] is None
+    assert result["sector_breadth_change"][0]["change"] is None
+
+def test_run_audit_marks_late_start():
+    import tempfile
+    with tempfile.TemporaryDirectory() as directory:
+        target=Path(directory)/"audit.json"
+        now=datetime(2026,9,14,14,51,tzinfo=ZoneInfo("Asia/Shanghai"))
+        payload=append_event(target,"afternoon","14:40","started",now=now)
+        event=payload["events"][0]
+        assert event["delay_seconds"]==660
+        assert event["trigger_timing"]=="late"
