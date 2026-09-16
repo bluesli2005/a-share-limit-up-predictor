@@ -20,6 +20,8 @@ def records_by_ticker(payload):
     return {str(row.get("ticker") or "").zfill(6): row for row in payload.get("records", [])}
 
 
+<<<<<<< Updated upstream
+=======
 def payload_available(payload, require_records):
     if not payload or payload.get("status") != "success":
         return False
@@ -27,19 +29,27 @@ def payload_available(payload, require_records):
     return isinstance(records, list) and (bool(records) if require_records else True)
 
 
+def numeric(value):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+>>>>>>> Stashed changes
 def delta(after, before):
-    return None if after is None or before is None else round(float(after) - float(before), 4)
+    after_value, before_value = numeric(after), numeric(before)
+    return None if after_value is None or before_value is None else round(after_value - before_value, 4)
 
 
 def delta_pct(after, before):
-    if after is None or before in (None, 0):
+    after_value, before_value = numeric(after), numeric(before)
+    if after_value is None or before_value in (None, 0):
         return None
-    return round((float(after) / float(before) - 1) * 100, 2)
+    return round((after_value / before_value - 1) * 100, 2)
 
 
 def seal_event(midday_sealed, afternoon_sealed, afternoon, midday_pool=None, afternoon_pool=None):
-    if midday_sealed is None or afternoon_sealed is None:
-        return None
     if midday_sealed and afternoon_sealed:
         before = (midday_pool or {}).get("reopen_count")
         after = (afternoon_pool or {}).get("reopen_count")
@@ -79,10 +89,6 @@ def sector_breadth(rows):
 
 
 def compare(midday_market, midday_pool, afternoon_market, afternoon_pool):
-    midday_market_available = payload_available(midday_market, require_records=True)
-    midday_pool_available = payload_available(midday_pool, require_records=False)
-    afternoon_market_available = payload_available(afternoon_market, require_records=True)
-    afternoon_pool_available = payload_available(afternoon_pool, require_records=False)
     mm, mp = records_by_ticker(midday_market), records_by_ticker(midday_pool)
     am, ap = records_by_ticker(afternoon_market), records_by_ticker(afternoon_pool)
     rows = []
@@ -99,13 +105,8 @@ def compare(midday_market, midday_pool, afternoon_market, afternoon_pool):
             "midday_pct_change": morning.get("pct_change"),
             "afternoon_pct_change": afternoon.get("pct_change"),
             "pct_change_delta_pct_points": delta(afternoon.get("pct_change"), morning.get("pct_change")),
-            "midday_at_limit_up": ticker in mp if midday_pool_available else None,
-            "afternoon_at_limit_up": ticker in ap if afternoon_pool_available else None,
-            "seal_event": seal_event(
-                ticker in mp if midday_pool_available else None,
-                ticker in ap if afternoon_pool_available else None,
-                afternoon, morning_pool, afternoon_pool_row,
-            ),
+            "midday_at_limit_up": ticker in mp, "afternoon_at_limit_up": ticker in ap,
+            "seal_event": seal_event(ticker in mp, ticker in ap, afternoon, morning_pool, afternoon_pool_row),
             "midday_queue_value": morning_pool.get("queue_value"),
             "afternoon_queue_value": afternoon_pool_row.get("queue_value"),
             "queue_value_change_pct": delta_pct(afternoon_pool_row.get("queue_value"), morning_pool.get("queue_value")),
@@ -119,38 +120,18 @@ def compare(midday_market, midday_pool, afternoon_market, afternoon_pool):
         }
         row["afternoon_strength"] = strength_label(row)
         rows.append(row)
-    before = sector_breadth(mm) if midday_market_available else None
-    after = sector_breadth(am) if afternoon_market_available else None
-    industries = sorted(set(before or {}) | set(after or {}))
-    missing_inputs = [
-        name for name, available in (
-            ("midday_market", midday_market_available),
-            ("midday_limit_up_pool", midday_pool_available),
-            ("afternoon_market", afternoon_market_available),
-            ("afternoon_limit_up_pool", afternoon_pool_available),
-        ) if not available
-    ]
+    before, after = sector_breadth(mm), sector_breadth(am)
+    industries = sorted(set(before) | set(after))
     return {
         "schema_version": "1.0", "run_type": "11-30_to_14-40_comparison",
         "generated_at_cst": datetime.now(CST).isoformat(timespec="seconds"),
-        "status": "success" if not missing_inputs else "partial",
-        "data_quality": {
-            "midday_market_available": midday_market_available,
-            "midday_limit_up_pool_available": midday_pool_available,
-            "afternoon_market_available": afternoon_market_available,
-            "afternoon_limit_up_pool_available": afternoon_pool_available,
-            "missing_inputs": missing_inputs,
-            "comparison_is_prediction": False,
-        },
-        "sector_breadth_change": [{
-            "industry": industry,
-            "midday_strong_count": before[industry] if before is not None else None,
-            "afternoon_strong_count": after[industry] if after is not None else None,
-            "change": (
-                after[industry] - before[industry]
-                if before is not None and after is not None else None
-            ),
-        } for industry in industries],
+        "status": "success" if mm and am else "partial",
+        "data_quality": {"midday_market_available": bool(mm), "midday_limit_up_pool_available": bool(mp),
+                         "afternoon_market_available": bool(am), "afternoon_limit_up_pool_available": bool(ap),
+                         "comparison_is_prediction": False},
+        "sector_breadth_change": [{"industry": industry, "midday_strong_count": before[industry],
+                                   "afternoon_strong_count": after[industry],
+                                   "change": after[industry] - before[industry]} for industry in industries],
         "record_count": len(rows), "records": rows,
     }
 
