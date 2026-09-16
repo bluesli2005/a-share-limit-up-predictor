@@ -27,14 +27,22 @@ def payload_available(payload, require_records):
     return isinstance(records, list) and (bool(records) if require_records else True)
 
 
+def numeric(value):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
 def delta(after, before):
-    return None if after is None or before is None else round(float(after) - float(before), 4)
+    after_value, before_value = numeric(after), numeric(before)
+    return None if after_value is None or before_value is None else round(after_value - before_value, 4)
 
 
 def delta_pct(after, before):
-    if after is None or before in (None, 0):
+    after_value, before_value = numeric(after), numeric(before)
+    if after_value is None or before_value in (None, 0):
         return None
-    return round((float(after) / float(before) - 1) * 100, 2)
+    return round((after_value / before_value - 1) * 100, 2)
 
 
 def seal_event(midday_sealed, afternoon_sealed, afternoon, midday_pool=None, afternoon_pool=None):

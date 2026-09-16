@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Collect a paired market snapshot and limit-up pool with bounded retries."""
+"""Collect a paired market snapshot and limit-up pool with bounded retries.
+
+Retries recover transport failures. A non-empty paired snapshot stops collection
+immediately even when it cannot pass the stricter formal-scoring quality gate.
+"""
 import argparse
 import json
 import shutil
@@ -114,6 +118,14 @@ def usable(path, kind="market", evaluated_at=None, max_age_seconds=60):
     return assess_payload(path, kind, evaluated_at, max_age_seconds)["quality_usable"]
 
 
+def paired_transport_usable(market_assessment, pool_assessment):
+    """Return whether both sides of one attempt contain usable collected data."""
+    return bool(
+        market_assessment["transport_usable"]
+        and pool_assessment["transport_usable"]
+    )
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--python", required=True)
@@ -169,7 +181,10 @@ def main():
             "_market_path": market,
             "_pool_path": pool,
         })
-        if market_ok and pool_ok:
+        # Do not repeat successful downloads merely because the free data source
+        # lacks fields needed for formal probabilities. Those limitations belong
+        # in the data-quality report, not in the transport retry loop.
+        if paired_transport_usable(market_assessment, pool_assessment):
             break
         if number < maximum:
             time.sleep(max(0, args.retry_delay_seconds))
@@ -199,6 +214,11 @@ def main():
         "schema_version": "1.0", "run_type": f"{args.mode}_collection_attempts",
         "generated_at_cst": datetime.now(CST).isoformat(timespec="seconds"),
         "status": "success" if success else "data_quality_failure" if transport_success else "failure",
+        "collection_succeeded": transport_success,
+        "formal_data_usable": success,
+        "retry_stop_reason": (
+            "paired_data_collected" if transport_success else "max_attempts_exhausted"
+        ),
         "max_attempts": maximum,
         "attempt_count": len(attempts),
         "selected_attempt": selected["attempt"] if selected else None,
@@ -207,7 +227,9 @@ def main():
     (args.raw_dir / "collection-attempts.json").write_text(
         json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
-    raise SystemExit(0 if success else 1)
+    # The runner may still generate a formal data-quality-failure report from a
+    # successfully collected pair. Return failure only when data was not acquired.
+    raise SystemExit(0 if transport_success else 1)
 
 
 if __name__ == "__main__":

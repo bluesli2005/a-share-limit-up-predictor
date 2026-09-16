@@ -5,7 +5,7 @@ from backtest import evaluate
 from score_candidates import exclusion_reasons, is_eligible, score_one
 from collect_market_data import eastmoney_snapshot, normalize_sina_records
 from compare_intraday_snapshots import compare
-from collect_with_retries import assess_payload, usable
+from collect_with_retries import assess_payload, paired_transport_usable, usable
 from write_run_audit import append_event
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -95,6 +95,11 @@ def test_retry_collector_requires_success_with_records():
         assert not usable(target)
         target.write_text('{"status":"failure","record_count":10}',encoding="utf-8")
         assert not usable(target)
+def test_retry_stops_after_paired_data_even_if_formal_quality_fails():
+    market={"transport_usable":True,"quality_usable":False}
+    pool={"transport_usable":True,"quality_usable":False}
+    assert paired_transport_usable(market,pool)
+    assert not paired_transport_usable(market,{**pool,"transport_usable":False})
 
 def test_missing_midday_does_not_create_false_afternoon_transition():
     afternoon_market={"status":"success","records":[{"ticker":"000001","name":"测试","industry":"半导体","pct_change":10,"turnover_value":180,"turnover_rate":3,"volume_ratio":1.8}]}
